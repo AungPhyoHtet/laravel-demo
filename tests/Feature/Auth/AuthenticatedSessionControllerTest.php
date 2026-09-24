@@ -1,0 +1,69 @@
+<?php
+
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
+
+uses(RefreshDatabase::class);
+
+describe('create', function () {
+    it('renders the login form', function () {
+        $response = $this->get(route('login'));
+
+        $response->assertOk();
+        $response->assertSee('Log In');
+    });
+
+    it('redirects an authenticated user to home', function () {
+        $this->actingAs(User::factory()->create());
+
+        $response = $this->get(route('login'));
+
+        $response->assertRedirect(route('home'));
+    });
+});
+
+describe('store', function () {
+    it('logs the user in and redirects home', function () {
+        $user = User::factory()->create(['password' => Hash::make('password123')]);
+
+        $response = $this->post(route('login'), [
+            'email' => $user->email,
+            'password' => 'password123',
+        ]);
+
+        $response->assertRedirect(route('home'));
+        expect(Auth::check())->toBeTrue();
+        expect(Auth::id())->toBe($user->id);
+    });
+
+    it('rejects invalid credentials', function () {
+        $user = User::factory()->create(['password' => Hash::make('password123')]);
+
+        $response = $this->post(route('login'), [
+            'email' => $user->email,
+            'password' => 'wrong-password',
+        ]);
+
+        $response->assertSessionHasErrors('email');
+        expect(Auth::check())->toBeFalse();
+    });
+});
+
+describe('destroy', function () {
+    it('logs the user out and redirects home', function () {
+        $this->actingAs(User::factory()->create());
+
+        $response = $this->post(route('logout'));
+
+        $response->assertRedirect(route('home'));
+        expect(Auth::check())->toBeFalse();
+    });
+
+    it('redirects a guest to login', function () {
+        $response = $this->post(route('logout'));
+
+        $response->assertRedirect(route('login'));
+    });
+});
