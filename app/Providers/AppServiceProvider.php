@@ -26,11 +26,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        RateLimiter::for('login', function (Request $request) {
-            return Limit::perMinute(5)->by(Str::transliterate(
-                Str::lower($request->string('email')).'|'.$request->ip()
-            ));
-        });
+        RateLimiter::for('login', fn (Request $request) => Limit::perMinute(5)->by(Str::transliterate(
+            Str::lower($request->string('email')).'|'.$request->ip()
+        )));
 
         Gate::define('access-admin', fn (User $user): Response => $user->is_admin
             ? Response::allow()

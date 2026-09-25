@@ -3,21 +3,18 @@
 namespace App\Models;
 
 use Database\Factories\IdeaFactory;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+#[Fillable([
+    'description',
+])]
 class Idea extends Model
 {
     /** @use HasFactory<IdeaFactory> */
     use HasFactory;
-
-    /**
-     * @var array<int, string>
-     */
-    protected $fillable = [
-        'description',
-    ];
 
     /**
      * Get the user who owns the idea.

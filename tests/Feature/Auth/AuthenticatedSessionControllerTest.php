@@ -7,15 +7,15 @@ use Illuminate\Support\Facades\Hash;
 
 uses(RefreshDatabase::class);
 
-describe('create', function () {
-    it('renders the login form', function () {
+describe('create', function (): void {
+    it('renders the login form', function (): void {
         $response = $this->get(route('login'));
 
         $response->assertOk();
         $response->assertSee('Log In');
     });
 
-    it('redirects an authenticated user to home', function () {
+    it('redirects an authenticated user to home', function (): void {
         $this->actingAs(User::factory()->create());
 
         $response = $this->get(route('login'));
@@ -24,8 +24,8 @@ describe('create', function () {
     });
 });
 
-describe('store', function () {
-    it('logs the user in and redirects home', function () {
+describe('store', function (): void {
+    it('logs the user in and redirects home', function (): void {
         $user = User::factory()->create(['password' => Hash::make('password123')]);
 
         $response = $this->post(route('login'), [
@@ -38,7 +38,7 @@ describe('store', function () {
         expect(Auth::id())->toBe($user->id);
     });
 
-    it('rejects invalid credentials', function () {
+    it('rejects invalid credentials', function (): void {
         $user = User::factory()->create(['password' => Hash::make('password123')]);
 
         $response = $this->post(route('login'), [
@@ -51,8 +51,8 @@ describe('store', function () {
     });
 });
 
-describe('destroy', function () {
-    it('logs the user out and redirects home', function () {
+describe('destroy', function (): void {
+    it('logs the user out and redirects home', function (): void {
         $this->actingAs(User::factory()->create());
 
         $response = $this->post(route('logout'));
@@ -61,7 +61,7 @@ describe('destroy', function () {
         expect(Auth::check())->toBeFalse();
     });
 
-    it('redirects a guest to login', function () {
+    it('redirects a guest to login', function (): void {
         $response = $this->post(route('logout'));
 
         $response->assertRedirect(route('login'));

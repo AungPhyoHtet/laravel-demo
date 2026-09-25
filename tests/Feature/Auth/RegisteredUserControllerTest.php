@@ -6,15 +6,15 @@ use Illuminate\Support\Facades\Auth;
 
 uses(RefreshDatabase::class);
 
-describe('create', function () {
-    it('renders the registration form', function () {
+describe('create', function (): void {
+    it('renders the registration form', function (): void {
         $response = $this->get(route('register'));
 
         $response->assertOk();
         $response->assertSee('Register');
     });
 
-    it('redirects an authenticated user to home', function () {
+    it('redirects an authenticated user to home', function (): void {
         $this->actingAs(User::factory()->create());
 
         $response = $this->get(route('register'));
@@ -23,8 +23,8 @@ describe('create', function () {
     });
 });
 
-describe('store', function () {
-    it('creates the user, logs them in, and redirects home', function () {
+describe('store', function (): void {
+    it('creates the user, logs them in, and redirects home', function (): void {
         $response = $this->post(route('register'), [
             'name' => 'Ada Lovelace',
             'email' => 'ada@example.com',
@@ -40,7 +40,7 @@ describe('store', function () {
         expect($user->name)->toBe('Ada Lovelace');
     });
 
-    it('rejects a mismatched password confirmation', function () {
+    it('rejects a mismatched password confirmation', function (): void {
         $response = $this->post(route('register'), [
             'name' => 'Ada Lovelace',
             'email' => 'ada@example.com',
@@ -52,7 +52,7 @@ describe('store', function () {
         expect(User::where('email', 'ada@example.com')->exists())->toBeFalse();
     });
 
-    it('rejects a duplicate email', function () {
+    it('rejects a duplicate email', function (): void {
         User::factory()->create(['email' => 'ada@example.com']);
 
         $response = $this->post(route('register'), [

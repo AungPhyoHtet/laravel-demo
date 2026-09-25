@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreIdeaRequest;
 use App\Http\Requests\UpdateIdeaRequest;
+use App\Jobs\SendIdeaPublishedNotification;
 use App\Models\Idea;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -35,9 +36,11 @@ class IdeaController extends Controller
      */
     public function store(StoreIdeaRequest $request): RedirectResponse
     {
-        $request->user()->ideas()->create($request->validated());
+        $idea = $request->user()->ideas()->create($request->validated());
 
-        return redirect()->route('ideas.index')->with('status', 'Idea created.');
+        dispatch(new SendIdeaPublishedNotification($idea));
+
+        return to_route('ideas.index')->with('status', 'Idea created.');
     }
 
     /**
@@ -67,7 +70,7 @@ class IdeaController extends Controller
     {
         $idea->update($request->validated());
 
-        return redirect()->route('ideas.index')->with('status', 'Idea updated.');
+        return to_route('ideas.index')->with('status', 'Idea updated.');
     }
 
     /**
@@ -79,6 +82,6 @@ class IdeaController extends Controller
 
         $idea->delete();
 
-        return redirect()->route('ideas.index')->with('status', 'Idea deleted.');
+        return to_route('ideas.index')->with('status', 'Idea deleted.');
     }
 }

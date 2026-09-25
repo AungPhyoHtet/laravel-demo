@@ -6,13 +6,13 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
 
-it('redirects guests to the login page', function () {
+it('redirects guests to the login page', function (): void {
     $response = $this->get(route('admin'));
 
     $response->assertRedirect(route('login'));
 });
 
-it('returns not found for non-admin users', function () {
+it('returns not found for non-admin users', function (): void {
     $user = User::factory()->create();
 
     $response = $this->actingAs($user)->get(route('admin'));
@@ -20,7 +20,7 @@ it('returns not found for non-admin users', function () {
     $response->assertNotFound();
 });
 
-it('shows all ideas to admins', function () {
+it('shows all ideas to admins', function (): void {
     $admin = User::factory()->admin()->create();
     $idea = Idea::factory()->create(['description' => 'Someone else entirely']);
 
@@ -31,7 +31,7 @@ it('shows all ideas to admins', function () {
     $response->assertSee($idea->user->name);
 });
 
-it('shows the admin nav link only to admins', function () {
+it('shows the admin nav link only to admins', function (): void {
     $user = User::factory()->create();
     $admin = User::factory()->admin()->create();
 
