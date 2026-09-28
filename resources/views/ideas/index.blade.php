@@ -1,31 +1,27 @@
 <x-layout title="Ideas">
-    <div class="flex items-center justify-between mt-6 mb-4">
+    <div class="flex items-center justify-between mb-4">
         <h1 class="text-2xl font-bold">Ideas</h1>
-        <a href="{{ route('ideas.create') }}" class="btn btn-primary">New Idea</a>
+        <x-ui.button variant="primary" :href="route('ideas.create')">New Idea</x-ui.button>
     </div>
 
-    @if (session('status'))
-        <div class="alert alert-success mb-4">
-            {{ session('status') }}
-        </div>
-    @endif
+    <x-ui.flash-status class="mb-4" />
 
     @if ($ideas->isEmpty())
         <p>No ideas yet.</p>
     @else
         <div class="flex flex-col gap-3">
             @foreach ($ideas as $idea)
-                <x-card class="text-left">
+                <x-card>
                     <div class="flex items-start justify-between gap-4">
                         <p>{{ $idea->description }}</p>
                         <div class="flex gap-2 shrink-0">
-                            <a href="{{ route('ideas.show', $idea) }}" class="btn btn-sm">View</a>
-                            <a href="{{ route('ideas.edit', $idea) }}" class="btn btn-sm">Edit</a>
+                            <x-ui.button size="sm" :href="route('ideas.show', $idea)">View</x-ui.button>
+                            <x-ui.button size="sm" :href="route('ideas.edit', $idea)">Edit</x-ui.button>
                             <form action="{{ route('ideas.destroy', $idea) }}" method="POST"
                                 onsubmit="return confirm('Delete this idea?');">
                                 @csrf
                                 @method('DELETE')
-                                <button type="submit" class="btn btn-sm btn-error">Delete</button>
+                                <x-ui.button variant="error" size="sm">Delete</x-ui.button>
                             </form>
                         </div>
                     </div>

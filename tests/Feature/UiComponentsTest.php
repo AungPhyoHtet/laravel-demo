@@ -1,0 +1,60 @@
+<?php
+
+use App\Enums\IdeaStatus;
+
+beforeEach(function (): void {
+    request()->setLaravelSession(session()->driver());
+    $this->withViewErrors([]);
+});
+
+it('renders a button as a link when given an href', function (): void {
+    $this->blade('<x-ui.button variant="primary" href="/ideas">Ideas</x-ui.button>')
+        ->assertSee('<a href="/ideas" class="btn btn-primary">Ideas</a>', false);
+
+    $this->blade('<x-ui.button variant="error" size="sm">Delete</x-ui.button>')
+        ->assertSee('<button type="submit" class="btn btn-error btn-sm">Delete</button>', false);
+});
+
+it('repopulates old input and shows validation errors on inputs', function (): void {
+    session()->flashInput(['email' => 'old@example.com', 'password' => 'secret-value']);
+
+    $this->withViewErrors(['email' => 'The email field is invalid.'])
+        ->blade('<x-ui.input name="email" type="email" label="Email" /><x-ui.input name="password" type="password" />')
+        ->assertSee('value="old@example.com"', false)
+        ->assertSee('input-error', false)
+        ->assertSee('The email field is invalid.')
+        ->assertDontSee('secret-value');
+});
+
+it('prefers old input over the given value for textareas', function (): void {
+    session()->flashInput(['description' => 'Edited description']);
+
+    $this->blade('<x-ui.textarea name="description" value="Saved description" />')
+        ->assertSee('Edited description')
+        ->assertDontSee('Saved description');
+});
+
+it('checks checkboxes and radios from old input after a failed submission', function (): void {
+    session()->flashInput(['status' => IdeaStatus::Completed->value]);
+
+    $this->blade(
+        '<x-ui.checkbox name="remember" :checked="true" /><x-ui.radio-group name="status" :options="$options" :value="$value" />',
+        [
+            'options' => ['pending' => 'Pending', 'completed' => 'Completed'],
+            'value' => IdeaStatus::Pending,
+        ],
+    )
+        ->assertDontSee('name="remember" type="checkbox" value="1" checked', false)
+        ->assertSee('value="completed" checked', false)
+        ->assertDontSee('value="pending" checked', false);
+});
+
+it('selects the option matching an enum value', function (): void {
+    $this->blade(
+        '<x-ui.select name="status" :options="$options" :value="$value" />',
+        [
+            'options' => ['pending' => 'Pending', 'in_progress' => 'In Progress'],
+            'value' => IdeaStatus::InProgress,
+        ],
+    )->assertSee('<option value="in_progress" selected', false);
+});

@@ -1,26 +1,22 @@
 <x-layout title="Notifications">
-    <div class="flex items-center justify-between mt-6 mb-4">
+    <div class="flex items-center justify-between mb-4">
         <h1 class="text-2xl font-bold">Notifications</h1>
         @if (auth()->user()->unreadNotifications()->exists())
             <form action="{{ route('notifications.read-all') }}" method="POST">
                 @csrf
-                <button type="submit" class="btn btn-sm">Mark all as read</button>
+                <x-ui.button size="sm">Mark all as read</x-ui.button>
             </form>
         @endif
     </div>
 
-    @if (session('status'))
-        <div class="alert alert-success mb-4">
-            {{ session('status') }}
-        </div>
-    @endif
+    <x-ui.flash-status class="mb-4" />
 
     @if ($notifications->isEmpty())
         <p>No notifications yet.</p>
     @else
         <div class="flex flex-col gap-3">
             @foreach ($notifications as $notification)
-                <x-card class="text-left">
+                <x-card>
                     <div class="flex items-start justify-between gap-4">
                         <div>
                             <p @class(['font-semibold' => $notification->unread()])>
@@ -30,9 +26,9 @@
                         </div>
                         <div class="flex items-center gap-2 shrink-0">
                             @if ($notification->unread())
-                                <span class="badge badge-primary badge-sm">New</span>
+                                <x-ui.badge variant="primary" size="sm">New</x-ui.badge>
                             @endif
-                            <a href="{{ route('notifications.show', $notification->id) }}" class="btn btn-sm">View</a>
+                            <x-ui.button size="sm" :href="route('notifications.show', $notification->id)">View</x-ui.button>
                         </div>
                     </div>
                 </x-card>
