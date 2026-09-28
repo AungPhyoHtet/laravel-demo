@@ -13,9 +13,9 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 
-<body>
+<body class="flex min-h-screen flex-col">
     <x-nav />
-    <main class="mx-auto max-w-3xl px-4 py-6">
+    <main class="mx-auto flex w-full max-w-3xl flex-1 flex-col px-4 py-6">
         {{ $slot }}
     </main>
 </body>

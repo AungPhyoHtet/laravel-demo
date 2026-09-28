@@ -1,6 +1,7 @@
 @props([
     'name',
     'label' => null,
+    'hint' => null,
     'id' => null,
     'type' => 'text',
     'value' => null,
@@ -12,14 +13,18 @@
     $currentValue = $type === 'password' ? null : old($errorKey, $value);
 @endphp
 
-<div class="flex flex-col gap-1.5">
+<fieldset class="fieldset">
     @if ($label)
-        <x-ui.label :for="$id">{{ $label }}</x-ui.label>
+        <legend class="fieldset-legend">{{ $label }}</legend>
     @endif
 
     <input id="{{ $id }}" name="{{ $name }}" type="{{ $type }}"
         @if (filled($currentValue)) value="{{ $currentValue }}" @endif
         {{ $attributes->class(['input w-full', 'input-error' => $errors->has($errorKey)]) }}>
 
+    @if ($hint && ! $errors->has($errorKey))
+        <p class="label">{{ $hint }}</p>
+    @endif
+
     <x-input-error :messages="$errors->get($errorKey)" />
-</div>
+</fieldset>

@@ -22,7 +22,7 @@ it('repopulates old input and shows validation errors on inputs', function (): v
         ->blade('<x-ui.input name="email" type="email" label="Email" /><x-ui.input name="password" type="password" />')
         ->assertSee('value="old@example.com"', false)
         ->assertSee('input-error', false)
-        ->assertSee('The email field is invalid.')
+        ->assertSee('<p class="label text-error">The email field is invalid.</p>', false)
         ->assertDontSee('secret-value');
 });
 
@@ -57,4 +57,20 @@ it('selects the option matching an enum value', function (): void {
             'value' => IdeaStatus::InProgress,
         ],
     )->assertSee('<option value="in_progress" selected', false);
+});
+
+it('renders a form with a title, description, csrf token and spoofed method', function (): void {
+    $this->blade('<x-ui.form action="/ideas/1" method="put" title="Edit Idea" description="Update your idea.">Fields</x-ui.form>')
+        ->assertSee('<h1 class="text-2xl font-bold">Edit Idea</h1>', false)
+        ->assertSee('Update your idea.')
+        ->assertSee('action="/ideas/1" method="POST" novalidate', false)
+        ->assertSee('name="_token"', false)
+        ->assertSee('name="_method" value="PUT"', false)
+        ->assertSee('Fields');
+});
+
+it('shows a hint below an input', function (): void {
+    $this->blade('<x-ui.input name="password" type="password" label="Password" hint="Use at least 8 characters." />')
+        ->assertSee('<legend class="fieldset-legend">Password</legend>', false)
+        ->assertSee('<p class="label">Use at least 8 characters.</p>', false);
 });
