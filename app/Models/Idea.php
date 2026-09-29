@@ -63,4 +63,22 @@ class Idea extends Model
     {
         return $this->hasMany(Step::class);
     }
+
+    /**
+     * Sync the idea's steps to the given list, keeping the completion state of existing steps.
+     *
+     * @param  list<array{id?: int|string|null, description: string}>  $steps
+     */
+    public function syncSteps(array $steps): void
+    {
+        $this->steps()->whereNotIn('id', array_filter(array_column($steps, 'id')))->delete();
+
+        foreach ($steps as $step) {
+            if (filled($step['id'] ?? null)) {
+                $this->steps()->whereKey($step['id'])->update(['description' => $step['description']]);
+            } else {
+                $this->steps()->create(['description' => $step['description']]);
+            }
+        }
+    }
 }

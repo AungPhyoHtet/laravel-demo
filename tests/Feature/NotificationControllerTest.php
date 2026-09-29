@@ -77,6 +77,7 @@ it('marks all notifications as read', function (): void {
     $response = $this->actingAs($this->user)->post(route('notifications.read-all'));
 
     $response->assertRedirect(route('notifications.index'));
+    $response->assertSessionHas('success', 'All notifications marked as read.');
     expect($first->fresh()->read())->toBeTrue()
         ->and($second->fresh()->read())->toBeTrue()
         ->and($otherUsers->fresh()->read())->toBeFalse();

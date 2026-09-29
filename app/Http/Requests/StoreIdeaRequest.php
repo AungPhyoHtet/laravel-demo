@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace App\Http\Requests;
 
+use App\Enums\IdeaStatus;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\File;
 
 class StoreIdeaRequest extends FormRequest
 {
@@ -25,7 +28,45 @@ class StoreIdeaRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'title' => ['required', 'string', 'max:255'],
             'description' => ['required', 'string', 'min:10'],
+            'status' => ['required', Rule::enum(IdeaStatus::class)],
+            'links' => ['array', 'max:10'],
+            'links.*' => ['string', 'url:http,https', 'max:255'],
+            'image' => ['nullable', File::image()->max(2 * 1024)],
+            'steps' => ['array', 'max:20'],
+            'steps.*' => ['array:description'],
+            'steps.*.description' => ['required', 'string', 'max:255'],
         ];
+    }
+
+    /**
+     * Get custom attributes for validator errors.
+     *
+     * @return array<string, string>
+     */
+    public function attributes(): array
+    {
+        return [
+            'links.*' => 'link',
+            'steps.*.description' => 'step',
+        ];
+    }
+
+    /**
+     * Drop the blank link and step rows the form submits for empty inputs.
+     */
+    protected function prepareForValidation(): void
+    {
+        $this->merge([
+            'links' => array_values(array_filter(
+                (array) $this->input('links', []),
+                fn (mixed $link): bool => filled($link),
+            )),
+            'steps' => array_values(array_filter(
+                (array) $this->input('steps', []),
+                fn (mixed $step): bool => is_array($step) && filled($step['description'] ?? null),
+            )),
+        ]);
     }
 }

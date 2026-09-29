@@ -9,8 +9,6 @@
         @endif
     </div>
 
-    <x-ui.flash-status class="mb-4" />
-
     @if ($notifications->isEmpty())
         <p>No notifications yet.</p>
     @else

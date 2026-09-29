@@ -1,16 +1,34 @@
 <?php
 
+use App\Enums\IdeaStatus;
 use App\Jobs\SendIdeaPublishedNotification;
 use App\Models\Idea;
+use App\Models\Step;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\Storage;
 
 uses(RefreshDatabase::class);
 
 beforeEach(function (): void {
     $this->user = User::factory()->create();
 });
+
+/**
+ * @param  array<string, mixed>  $overrides
+ * @return array<string, mixed>
+ */
+function ideaPayload(array $overrides = []): array
+{
+    return [
+        'title' => 'Mousetrap',
+        'description' => 'Build a better mousetrap',
+        'status' => IdeaStatus::Pending->value,
+        ...$overrides,
+    ];
+}
 
 it('redirects guests to the login page', function (string $method, string $routeName): void {
     $idea = Idea::factory()->create();
@@ -52,20 +70,17 @@ describe('create', function (): void {
 
 describe('store', function (): void {
     it('creates the idea for the user and redirects to the index', function (): void {
-        $response = $this->actingAs($this->user)->post(route('ideas.store'), [
-            'description' => 'Build a better mousetrap',
-        ]);
+        $response = $this->actingAs($this->user)->post(route('ideas.store'), ideaPayload());
 
         $response->assertRedirect(route('ideas.index'));
+        $response->assertSessionHas('success', 'Idea created.');
         expect($this->user->ideas()->where('description', 'Build a better mousetrap')->exists())->toBeTrue();
     });
 
     it('queues the idea published notification', function (): void {
         Queue::fake();
 
-        $this->actingAs($this->user)->post(route('ideas.store'), [
-            'description' => 'Build a better mousetrap',
-        ]);
+        $this->actingAs($this->user)->post(route('ideas.store'), ideaPayload());
 
         $idea = $this->user->ideas()->sole();
 
@@ -91,6 +106,51 @@ describe('store', function (): void {
             'description' => 'The description field must be at least 10 characters.',
         ]);
         expect(Idea::count())->toBe(0);
+    });
+});
+
+describe('store details', function (): void {
+    it('saves the title, status, links, steps and image', function (): void {
+        Storage::fake('public');
+
+        $this->actingAs($this->user)->post(route('ideas.store'), ideaPayload([
+            'status' => IdeaStatus::InProgress->value,
+            'links' => ['https://example.com', ''],
+            'steps' => [['description' => 'Sketch it'], ['description' => ''], ['description' => 'Build it']],
+            'image' => UploadedFile::fake()->image('mousetrap.jpg'),
+        ]))->assertRedirect(route('ideas.index'));
+
+        $idea = $this->user->ideas()->sole();
+
+        expect($idea->title)->toBe('Mousetrap')
+            ->and($idea->status)->toBe(IdeaStatus::InProgress)
+            ->and($idea->links)->toBe(['https://example.com'])
+            ->and($idea->steps()->pluck('description')->all())->toBe(['Sketch it', 'Build it']);
+        Storage::disk('public')->assertExists($idea->image_path);
+    });
+
+    it('rejects invalid fields', function (array $overrides, string $errorKey): void {
+        $response = $this->actingAs($this->user)->post(route('ideas.store'), ideaPayload($overrides));
+
+        $response->assertSessionHasErrors($errorKey);
+        expect(Idea::count())->toBe(0);
+    })->with([
+        'missing title' => [['title' => ''], 'title'],
+        'unknown status' => [['status' => 'archived'], 'status'],
+        'invalid link' => [['links' => ['not-a-url']], 'links.0'],
+        'non-http link' => [['links' => ['javascript:alert(1)']], 'links.0'],
+        'too long step' => [['steps' => [['description' => str_repeat('a', 256)]]], 'steps.0.description'],
+        'non-image file' => [['image' => UploadedFile::fake()->create('notes.pdf', 10, 'application/pdf')], 'image'],
+        'image over 2 MB' => [['image' => UploadedFile::fake()->image('big.jpg')->size(2049)], 'image'],
+    ]);
+
+    it('rejects a completion flag submitted with a step', function (): void {
+        $response = $this->actingAs($this->user)->post(route('ideas.store'), ideaPayload([
+            'steps' => [['description' => 'Sketch it', 'is_completed' => true]],
+        ]));
+
+        $response->assertSessionHasErrors('steps.0');
+        expect(Step::count())->toBe(0);
     });
 });
 
@@ -136,11 +196,12 @@ describe('update', function (): void {
     it('updates the idea and redirects to the index', function (): void {
         $idea = Idea::factory()->for($this->user)->create(['description' => 'Build a better mousetrap']);
 
-        $response = $this->actingAs($this->user)->put(route('ideas.update', $idea), [
+        $response = $this->actingAs($this->user)->put(route('ideas.update', $idea), ideaPayload([
             'description' => 'Build an even better mousetrap',
-        ]);
+        ]));
 
         $response->assertRedirect(route('ideas.index'));
+        $response->assertSessionHas('success', 'Idea updated.');
         expect($idea->fresh()->description)->toBe('Build an even better mousetrap');
     });
 
@@ -167,6 +228,63 @@ describe('update', function (): void {
     });
 });
 
+describe('update details', function (): void {
+    it('syncs steps, keeping the completion state of kept steps', function (): void {
+        $idea = Idea::factory()->for($this->user)->create();
+        $keptStep = Step::factory()->for($idea)->create(['description' => 'Sketch it', 'is_completed' => true]);
+        $removedStep = Step::factory()->for($idea)->create();
+
+        $this->actingAs($this->user)->put(route('ideas.update', $idea), ideaPayload([
+            'steps' => [
+                ['id' => $keptStep->id, 'description' => 'Sketch it properly'],
+                ['id' => null, 'description' => 'Build it'],
+            ],
+        ]))->assertRedirect(route('ideas.index'));
+
+        expect($keptStep->fresh())
+            ->description->toBe('Sketch it properly')
+            ->is_completed->toBeTrue()
+            ->and(Step::find($removedStep->id))->toBeNull()
+            ->and($idea->steps()->pluck('description')->all())->toBe(['Sketch it properly', 'Build it']);
+    });
+
+    it('rejects a step belonging to another idea', function (): void {
+        $idea = Idea::factory()->for($this->user)->create();
+        $otherStep = Step::factory()->create(['description' => 'Not yours']);
+
+        $response = $this->actingAs($this->user)->put(route('ideas.update', $idea), ideaPayload([
+            'steps' => [['id' => $otherStep->id, 'description' => 'Hijacked']],
+        ]));
+
+        $response->assertSessionHasErrors('steps.0.id');
+        expect($otherStep->fresh()->description)->toBe('Not yours');
+    });
+
+    it('replaces the image and deletes the previous file', function (): void {
+        Storage::fake('public');
+        $previousPath = UploadedFile::fake()->image('old.jpg')->store('ideas', 'public');
+        $idea = Idea::factory()->for($this->user)->create(['image_path' => $previousPath]);
+
+        $this->actingAs($this->user)->put(route('ideas.update', $idea), ideaPayload([
+            'image' => UploadedFile::fake()->image('new.jpg'),
+        ]))->assertRedirect(route('ideas.index'));
+
+        Storage::disk('public')->assertMissing($previousPath);
+        Storage::disk('public')->assertExists($idea->fresh()->image_path);
+    });
+
+    it('keeps the current image when no new image is uploaded', function (): void {
+        Storage::fake('public');
+        $path = UploadedFile::fake()->image('old.jpg')->store('ideas', 'public');
+        $idea = Idea::factory()->for($this->user)->create(['image_path' => $path]);
+
+        $this->actingAs($this->user)->put(route('ideas.update', $idea), ideaPayload());
+
+        expect($idea->fresh()->image_path)->toBe($path);
+        Storage::disk('public')->assertExists($path);
+    });
+});
+
 describe('destroy', function (): void {
     it('deletes the idea and redirects to the index', function (): void {
         $idea = Idea::factory()->for($this->user)->create();
@@ -174,7 +292,18 @@ describe('destroy', function (): void {
         $response = $this->actingAs($this->user)->delete(route('ideas.destroy', $idea));
 
         $response->assertRedirect(route('ideas.index'));
+        $response->assertSessionHas('success', 'Idea deleted.');
         expect(Idea::find($idea->id))->toBeNull();
+    });
+
+    it('deletes the idea image', function (): void {
+        Storage::fake('public');
+        $path = UploadedFile::fake()->image('old.jpg')->store('ideas', 'public');
+        $idea = Idea::factory()->for($this->user)->create(['image_path' => $path]);
+
+        $this->actingAs($this->user)->delete(route('ideas.destroy', $idea));
+
+        Storage::disk('public')->assertMissing($path);
     });
 
     it('forbids deleting another user\'s idea', function (): void {

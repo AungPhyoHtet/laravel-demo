@@ -74,3 +74,16 @@ it('shows a hint below an input', function (): void {
         ->assertSee('<legend class="fieldset-legend">Password</legend>', false)
         ->assertSee('<p class="label">Use at least 8 characters.</p>', false);
 });
+
+it('renders flashed success and error messages as dismissible alerts', function (): void {
+    session()->flash('success', 'Idea created.');
+    session()->flash('error', 'Something went wrong.');
+
+    $this->blade('<x-ui.flash />')
+        ->assertSeeInOrder(['alert-success', 'Idea created.', 'alert-error', 'Something went wrong.'], false)
+        ->assertSee('x-on:click="visible = false"', false);
+});
+
+it('renders nothing when no message is flashed', function (): void {
+    $this->blade('<x-ui.flash />')->assertDontSee('toast', false);
+});

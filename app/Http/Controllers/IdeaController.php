@@ -8,7 +8,9 @@ use App\Jobs\SendIdeaPublishedNotification;
 use App\Models\Idea;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 
 class IdeaController extends Controller
@@ -36,11 +38,20 @@ class IdeaController extends Controller
      */
     public function store(StoreIdeaRequest $request): RedirectResponse
     {
-        $idea = $request->user()->ideas()->create($request->validated());
+        $idea = DB::transaction(function () use ($request): Idea {
+            $idea = $request->user()->ideas()->create([
+                ...$request->safe()->only(['title', 'description', 'status', 'links']),
+                'image_path' => $request->file('image')?->store('ideas', 'public'),
+            ]);
+
+            $idea->steps()->createMany($request->validated('steps', []));
+
+            return $idea;
+        });
 
         dispatch(new SendIdeaPublishedNotification($idea));
 
-        return to_route('ideas.index')->with('status', 'Idea created.');
+        return to_route('ideas.index')->with('success', 'Idea created.');
     }
 
     /**
@@ -50,7 +61,7 @@ class IdeaController extends Controller
     {
         Gate::authorize('view', $idea);
 
-        return view('ideas.show', ['idea' => $idea]);
+        return view('ideas.show', ['idea' => $idea->load('steps')]);
     }
 
     /**
@@ -60,7 +71,7 @@ class IdeaController extends Controller
     {
         Gate::authorize('update', $idea);
 
-        return view('ideas.edit', ['idea' => $idea]);
+        return view('ideas.edit', ['idea' => $idea->load('steps')]);
     }
 
     /**
@@ -68,9 +79,24 @@ class IdeaController extends Controller
      */
     public function update(UpdateIdeaRequest $request, Idea $idea): RedirectResponse
     {
-        $idea->update($request->validated());
+        $attributes = $request->safe()->only(['title', 'description', 'status', 'links']);
+        $previousImagePath = null;
 
-        return to_route('ideas.index')->with('status', 'Idea updated.');
+        if ($request->hasFile('image')) {
+            $previousImagePath = $idea->image_path;
+            $attributes['image_path'] = $request->file('image')->store('ideas', 'public');
+        }
+
+        DB::transaction(function () use ($idea, $attributes, $request): void {
+            $idea->update($attributes);
+            $idea->syncSteps($request->validated('steps', []));
+        });
+
+        if ($previousImagePath) {
+            Storage::disk('public')->delete($previousImagePath);
+        }
+
+        return to_route('ideas.index')->with('success', 'Idea updated.');
     }
 
     /**
@@ -82,6 +108,10 @@ class IdeaController extends Controller
 
         $idea->delete();
 
-        return to_route('ideas.index')->with('status', 'Idea deleted.');
+        if ($idea->image_path) {
+            Storage::disk('public')->delete($idea->image_path);
+        }
+
+        return to_route('ideas.index')->with('success', 'Idea deleted.');
     }
 }

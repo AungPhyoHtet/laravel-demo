@@ -4,8 +4,6 @@
         <x-ui.button variant="primary" :href="route('ideas.create')">New Idea</x-ui.button>
     </div>
 
-    <x-ui.flash-status class="mb-4" />
-
     @if ($ideas->isEmpty())
         <p>No ideas yet.</p>
     @else
@@ -13,7 +11,10 @@
             @foreach ($ideas as $idea)
                 <x-card>
                     <div class="flex items-start justify-between gap-4">
-                        <p>{{ $idea->description }}</p>
+                        <div>
+                            <p class="font-semibold">{{ $idea->title }}</p>
+                            <p>{{ $idea->description }}</p>
+                        </div>
                         <div class="flex gap-2 shrink-0">
                             <x-ui.button size="sm" :href="route('ideas.show', $idea)">View</x-ui.button>
                             <x-ui.button size="sm" :href="route('ideas.edit', $idea)">Edit</x-ui.button>
