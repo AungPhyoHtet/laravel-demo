@@ -247,6 +247,51 @@ describe('show', function (): void {
         $response->assertSee($idea->description);
     });
 
+    it('shows the full idea details', function (): void {
+        $this->travelTo('2026-03-14 09:00:00');
+        $idea = Idea::factory()->for($this->user)->create([
+            'description' => 'Build a better mousetrap',
+            'links' => ['https://example.com/mousetrap'],
+            'image_path' => 'ideas/mousetrap.jpg',
+        ]);
+        Step::factory()->for($idea)->create(['description' => 'Sketch it', 'is_completed' => true]);
+        Step::factory()->for($idea)->create(['description' => 'Build it']);
+        $this->travelBack();
+
+        $response = $this->actingAs($this->user)->get(route('ideas.show', $idea));
+
+        $response->assertSeeInOrder([
+            Storage::disk('public')->url('ideas/mousetrap.jpg'),
+            'Created Sat, Mar 14, 2026',
+            'Build a better mousetrap',
+            'https://example.com/mousetrap',
+            '1 / 2 done',
+            'Sketch it',
+            'Build it',
+        ]);
+    });
+
+    it('says when the idea has no links or steps', function (): void {
+        $idea = Idea::factory()->for($this->user)->create(['links' => null]);
+
+        $response = $this->actingAs($this->user)->get(route('ideas.show', $idea));
+
+        $response->assertSeeInOrder(['No links added.', 'No steps added.']);
+    });
+
+    it('links back to the list and to the edit and delete actions', function (): void {
+        $idea = Idea::factory()->for($this->user)->create();
+
+        $response = $this->actingAs($this->user)->get(route('ideas.show', $idea));
+
+        $response->assertSeeInOrder([
+            'href="'.route('ideas.index').'"',
+            'href="'.route('ideas.edit', $idea).'"',
+            'action="'.route('ideas.destroy', $idea).'"',
+            'name="_method" value="DELETE"',
+        ], false);
+    });
+
     it('forbids viewing another user\'s idea', function (): void {
         $idea = Idea::factory()->create();
 

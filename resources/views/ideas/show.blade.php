@@ -1,38 +1,84 @@
+@php
+    $completedStepCount = $idea->steps->where('is_completed', true)->count();
+@endphp
+
 <x-layout :title="$idea->title ?: 'Idea'">
-    <div class="flex items-center justify-between gap-4 mb-4">
-        <h1 class="text-2xl font-bold">{{ $idea->title ?: 'Idea' }}</h1>
-        <x-ui.badge :variant="$idea->status->badgeVariant()">{{ $idea->status->label() }}</x-ui.badge>
+    <x-ui.button variant="ghost" size="sm" :href="route('ideas.index')" class="mb-2 -ms-3">
+        &larr; Back to Ideas
+    </x-ui.button>
+
+    <div class="flex flex-wrap items-center justify-between gap-4 mb-4">
+        <div class="flex items-center gap-3">
+            <h1 class="text-2xl font-bold">{{ $idea->title ?: 'Idea' }}</h1>
+            <x-ui.badge :variant="$idea->status->badgeVariant()">{{ $idea->status->label() }}</x-ui.badge>
+        </div>
+
+        <div class="flex gap-2">
+            <x-ui.button size="sm" :href="route('ideas.edit', $idea)">Edit</x-ui.button>
+            <form action="{{ route('ideas.destroy', $idea) }}" method="POST"
+                onsubmit="return confirm('Delete this idea?');">
+                @csrf
+                @method('DELETE')
+                <x-ui.button variant="error" size="sm">Delete</x-ui.button>
+            </form>
+        </div>
     </div>
 
     <x-card>
         @if ($idea->image_path)
-            <img src="{{ Storage::disk('public')->url($idea->image_path) }}" alt="Image for {{ $idea->title }}"
-                class="max-h-64 w-full rounded-box object-cover">
+            <a href="{{ Storage::disk('public')->url($idea->image_path) }}" target="_blank" rel="noopener noreferrer">
+                <img src="{{ Storage::disk('public')->url($idea->image_path) }}" alt="Image for {{ $idea->title }}"
+                    class="max-h-96 w-full rounded-box object-cover">
+            </a>
         @endif
 
-        <p>{{ $idea->description }}</p>
+        <p class="text-sm opacity-70">
+            Created {{ $idea->created_at->toFormattedDayDateString() }}
+            @if ($idea->updated_at->isAfter($idea->created_at))
+                &middot; Updated {{ $idea->updated_at->diffForHumans() }}
+            @endif
+        </p>
 
-        @if ($idea->links)
-            <h2 class="font-semibold mt-2">Links</h2>
-            <ul class="list-disc ps-5">
-                @foreach ($idea->links as $link)
-                    <li><a href="{{ $link }}" class="link link-primary" target="_blank" rel="noopener noreferrer">{{ $link }}</a></li>
-                @endforeach
-            </ul>
-        @endif
+        <section>
+            <h2 class="font-semibold mb-1">Description</h2>
+            <p class="whitespace-pre-line">{{ $idea->description }}</p>
+        </section>
 
-        @if ($idea->steps->isNotEmpty())
-            <h2 class="font-semibold mt-2">Steps</h2>
-            <ul class="list-disc ps-5">
-                @foreach ($idea->steps as $step)
-                    <li @class(['line-through opacity-70' => $step->is_completed])>{{ $step->description }}</li>
-                @endforeach
-            </ul>
-        @endif
+        <section>
+            <h2 class="font-semibold mb-1">Links</h2>
+            @if ($idea->links)
+                <ul class="list-disc ps-5">
+                    @foreach ($idea->links as $link)
+                        <li class="break-all">
+                            <a href="{{ $link }}" class="link link-primary" target="_blank"
+                                rel="noopener noreferrer">{{ $link }}</a>
+                        </li>
+                    @endforeach
+                </ul>
+            @else
+                <p class="text-sm opacity-70">No links added.</p>
+            @endif
+        </section>
+
+        <section class="flex flex-col gap-1">
+            <div class="flex items-center justify-between">
+                <h2 class="font-semibold">Steps</h2>
+                @if ($idea->steps->isNotEmpty())
+                    <span class="text-sm opacity-70">{{ $completedStepCount }} / {{ $idea->steps->count() }} done</span>
+                @endif
+            </div>
+            @if ($idea->steps->isNotEmpty())
+                <progress class="progress progress-primary" value="{{ $completedStepCount }}"
+                    max="{{ $idea->steps->count() }}"
+                    aria-label="{{ $completedStepCount }} of {{ $idea->steps->count() }} steps done"></progress>
+                <ul class="list-disc ps-5">
+                    @foreach ($idea->steps as $step)
+                        <li @class(['line-through opacity-70' => $step->is_completed])>{{ $step->description }}</li>
+                    @endforeach
+                </ul>
+            @else
+                <p class="text-sm opacity-70">No steps added.</p>
+            @endif
+        </section>
     </x-card>
-
-    <div class="flex gap-2 mt-4">
-        <x-ui.button :href="route('ideas.edit', $idea)">Edit</x-ui.button>
-        <x-ui.button :href="route('ideas.index')">Back to Ideas</x-ui.button>
-    </div>
 </x-layout>
