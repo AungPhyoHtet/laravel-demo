@@ -5,6 +5,7 @@ use App\Jobs\SendIdeaPublishedNotification;
 use App\Models\Idea;
 use App\Models\Step;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Queue;
@@ -56,6 +57,88 @@ describe('index', function (): void {
         $response->assertOk();
         $response->assertSee($idea->description);
         $response->assertDontSee($otherIdea->description);
+    });
+
+    it('shows the full idea details on each card', function (): void {
+        $idea = Idea::factory()->for($this->user)->create([
+            'title' => 'Mousetrap',
+            'status' => IdeaStatus::InProgress,
+            'links' => ['https://example.com/mousetrap'],
+        ]);
+        Step::factory()->for($idea)->create(['description' => 'Sketch it', 'is_completed' => true]);
+        Step::factory()->for($idea)->create(['description' => 'Build it']);
+
+        $response = $this->actingAs($this->user)->get(route('ideas.index'));
+
+        $response->assertOk();
+        $response->assertSeeInOrder(['Mousetrap', 'In Progress', $idea->description, 'https://example.com/mousetrap', '1 / 2 done', 'Sketch it', 'Build it']);
+    });
+
+    it('eager loads the steps for every idea', function (): void {
+        Idea::factory()->for($this->user)->has(Step::factory()->count(2))->count(3)->create();
+        Model::preventLazyLoading();
+
+        try {
+            $response = $this->actingAs($this->user)->get(route('ideas.index'));
+        } finally {
+            Model::preventLazyLoading(false);
+        }
+
+        $response->assertOk();
+    });
+
+    it('filters the ideas by status', function (IdeaStatus $status): void {
+        foreach (IdeaStatus::cases() as $case) {
+            Idea::factory()->for($this->user)->create(['description' => "Idea that is {$case->value}", 'status' => $case]);
+        }
+
+        $response = $this->actingAs($this->user)->get(route('ideas.index', ['status' => $status->value]));
+
+        $response->assertViewHas('ideas', fn ($ideas): bool => $ideas->pluck('status')->all() === [$status]);
+        $response->assertSee("Idea that is {$status->value}");
+    })->with(IdeaStatus::cases());
+
+    it('redirects to the unfiltered list with an error when the status filter is invalid', function (): void {
+        $response = $this->actingAs($this->user)
+            ->from(route('ideas.index', ['status' => 'in_progresssdsfsd']))
+            ->get(route('ideas.index', ['status' => 'in_progresssdsfsd']));
+
+        $response->assertRedirect(route('ideas.index'));
+        $response->assertSessionHasErrors(['status' => 'The selected status filter is invalid.']);
+    });
+
+    it('shows the invalid status filter error above the filters', function (): void {
+        $response = $this->actingAs($this->user)
+            ->followingRedirects()
+            ->get(route('ideas.index', ['status' => 'in_progresssdsfsd']));
+
+        $response->assertSeeInOrder(['The selected status filter is invalid.', 'Filter ideas by status']);
+    });
+
+    it('counts the user\'s ideas for each filter tab', function (): void {
+        Idea::factory()->for($this->user)->count(2)->create(['status' => IdeaStatus::Pending]);
+        Idea::factory()->for($this->user)->create(['status' => IdeaStatus::Completed]);
+        Idea::factory()->create(['status' => IdeaStatus::Pending]);
+
+        $response = $this->actingAs($this->user)->get(route('ideas.index', ['status' => 'completed']));
+
+        $response->assertSeeTextInOrder(['All', '3', 'Pending', '2', 'In Progress', '0', 'Completed', '1']);
+    });
+
+    it('keeps the status filter in the pagination links', function (): void {
+        Idea::factory()->for($this->user)->count(11)->create(['status' => IdeaStatus::Completed]);
+
+        $response = $this->actingAs($this->user)->get(route('ideas.index', ['status' => 'completed']));
+
+        $response->assertSee(route('ideas.index', ['status' => 'completed', 'page' => 2]));
+    });
+
+    it('says when no ideas match the status filter', function (): void {
+        Idea::factory()->for($this->user)->create(['status' => IdeaStatus::Pending]);
+
+        $response = $this->actingAs($this->user)->get(route('ideas.index', ['status' => 'completed']));
+
+        $response->assertSee('No completed ideas.');
     });
 });
 

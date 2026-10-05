@@ -21,6 +21,18 @@ enum IdeaStatus: string
     }
 
     /**
+     * Get the badge variant used to display the status.
+     */
+    public function badgeVariant(): string
+    {
+        return match ($this) {
+            self::Pending => 'warning',
+            self::InProgress => 'info',
+            self::Completed => 'success',
+        };
+    }
+
+    /**
      * Get the statuses as select options keyed by value.
      *
      * @return array<string, string>

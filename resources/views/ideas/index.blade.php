@@ -4,29 +4,32 @@
         <x-ui.button variant="primary" :href="route('ideas.create')">New Idea</x-ui.button>
     </div>
 
+    @error('status')
+        <x-ui.alert variant="error" class="mb-4">{{ $message }}</x-ui.alert>
+    @enderror
+
+    <nav aria-label="Filter ideas by status" class="mb-4 flex flex-wrap gap-2">
+        <x-ui.button variant="primary" size="sm" :outline="(bool) $status" :href="route('ideas.index')"
+            :aria-current="$status ? false : 'page'">
+            All
+            <span class="badge badge-sm">{{ $statusCounts->sum() }}</span>
+        </x-ui.button>
+        @foreach (App\Enums\IdeaStatus::cases() as $filterStatus)
+            <x-ui.button variant="primary" size="sm" :outline="$status !== $filterStatus"
+                :href="route('ideas.index', ['status' => $filterStatus])"
+                :aria-current="$status === $filterStatus ? 'page' : false">
+                {{ $filterStatus->label() }}
+                <span class="badge badge-sm">{{ $statusCounts->get($filterStatus->value, 0) }}</span>
+            </x-ui.button>
+        @endforeach
+    </nav>
+
     @if ($ideas->isEmpty())
-        <p>No ideas yet.</p>
+        <p>{{ $status ? 'No ' . strtolower($status->label()) . ' ideas.' : 'No ideas yet.' }}</p>
     @else
-        <div class="flex flex-col gap-3">
+        <div class="grid gap-4 sm:grid-cols-2">
             @foreach ($ideas as $idea)
-                <x-card>
-                    <div class="flex items-start justify-between gap-4">
-                        <div>
-                            <p class="font-semibold">{{ $idea->title }}</p>
-                            <p>{{ $idea->description }}</p>
-                        </div>
-                        <div class="flex gap-2 shrink-0">
-                            <x-ui.button size="sm" :href="route('ideas.show', $idea)">View</x-ui.button>
-                            <x-ui.button size="sm" :href="route('ideas.edit', $idea)">Edit</x-ui.button>
-                            <form action="{{ route('ideas.destroy', $idea) }}" method="POST"
-                                onsubmit="return confirm('Delete this idea?');">
-                                @csrf
-                                @method('DELETE')
-                                <x-ui.button variant="error" size="sm">Delete</x-ui.button>
-                            </form>
-                        </div>
-                    </div>
-                </x-card>
+                <x-ideas.card :idea="$idea" />
             @endforeach
         </div>
 

@@ -87,3 +87,22 @@ it('renders flashed success and error messages as dismissible alerts', function 
 it('renders nothing when no message is flashed', function (): void {
     $this->blade('<x-ui.flash />')->assertDontSee('toast', false);
 });
+
+it('renders textareas and selects with a legend and a hint that errors replace', function (): void {
+    $this->blade('<x-ui.textarea name="description" label="Description" hint="At least 10 characters." />')
+        ->assertSee('<legend class="fieldset-legend">Description</legend>', false)
+        ->assertSee('<p class="label">At least 10 characters.</p>', false);
+
+    $this->withViewErrors(['status' => 'The status field is required.'])
+        ->blade('<x-ui.select name="status" label="Status" hint="Pick one." :options="[]" />')
+        ->assertSee('<legend class="fieldset-legend">Status</legend>', false)
+        ->assertSee('The status field is required.')
+        ->assertDontSee('Pick one.');
+});
+
+it('renders a radio group as a fieldset with a legend and a hint', function (): void {
+    $this->blade('<x-ui.radio-group name="status" label="Status" hint="Pick one." :options="[\'pending\' => \'Pending\']" />')
+        ->assertSee('<fieldset class="fieldset">', false)
+        ->assertSee('<legend class="fieldset-legend">Status</legend>', false)
+        ->assertSee('<p class="label">Pick one.</p>', false);
+});

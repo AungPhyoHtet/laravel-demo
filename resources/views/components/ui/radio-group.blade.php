@@ -2,6 +2,7 @@
     'name',
     'options' => [],
     'label' => null,
+    'hint' => null,
     'value' => null,
     'variant' => null,
     'size' => null,
@@ -12,9 +13,9 @@
     $selectedValue = $value instanceof BackedEnum ? $value->value : $value;
 @endphp
 
-<div role="radiogroup" {{ $attributes->class(['flex flex-col gap-1.5']) }}>
+<fieldset {{ $attributes->class(['fieldset']) }}>
     @if ($label)
-        <span class="label">{{ $label }}</span>
+        <legend class="fieldset-legend">{{ $label }}</legend>
     @endif
 
     @foreach ($options as $optionValue => $optionLabel)
@@ -22,5 +23,9 @@
             :checked="(string) $optionValue === (string) $selectedValue" />
     @endforeach
 
+    @if ($hint && ! $errors->has($errorKey))
+        <p class="label">{{ $hint }}</p>
+    @endif
+
     <x-input-error :messages="$errors->get($errorKey)" />
-</div>
+</fieldset>

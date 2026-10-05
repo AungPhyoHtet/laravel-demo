@@ -2,12 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\IdeaStatus;
+use App\Http\Requests\IndexIdeaRequest;
 use App\Http\Requests\StoreIdeaRequest;
 use App\Http\Requests\UpdateIdeaRequest;
 use App\Jobs\SendIdeaPublishedNotification;
 use App\Models\Idea;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
@@ -18,11 +20,24 @@ class IdeaController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index(Request $request): View
+    public function index(IndexIdeaRequest $request): View
     {
-        $ideas = $request->user()->ideas()->latest()->paginate(10);
+        $status = $request->enum('status', IdeaStatus::class);
 
-        return view('ideas.index', ['ideas' => $ideas]);
+        $ideas = $request->user()->ideas()
+            ->when($status, fn (Builder $query, IdeaStatus $status): Builder => $query->where('status', $status))
+            ->with('steps')
+            ->latest()
+            ->paginate(10)
+            ->withQueryString();
+
+        $statusCounts = $request->user()->ideas()
+            ->toBase()
+            ->selectRaw('status, count(*) as aggregate')
+            ->groupBy('status')
+            ->pluck('aggregate', 'status');
+
+        return view('ideas.index', ['ideas' => $ideas, 'status' => $status, 'statusCounts' => $statusCounts]);
     }
 
     /**

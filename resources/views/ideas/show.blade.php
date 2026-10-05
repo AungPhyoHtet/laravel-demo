@@ -1,7 +1,7 @@
 <x-layout :title="$idea->title ?: 'Idea'">
     <div class="flex items-center justify-between gap-4 mb-4">
         <h1 class="text-2xl font-bold">{{ $idea->title ?: 'Idea' }}</h1>
-        <x-ui.badge variant="primary" outline>{{ $idea->status->label() }}</x-ui.badge>
+        <x-ui.badge :variant="$idea->status->badgeVariant()">{{ $idea->status->label() }}</x-ui.badge>
     </div>
 
     <x-card>

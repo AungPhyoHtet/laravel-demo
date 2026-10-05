@@ -2,6 +2,7 @@
     'name',
     'options' => [],
     'label' => null,
+    'hint' => null,
     'id' => null,
     'value' => null,
     'placeholder' => null,
@@ -13,9 +14,9 @@
     $selectedValue = old($errorKey, $value instanceof BackedEnum ? $value->value : $value);
 @endphp
 
-<div class="flex flex-col gap-1.5">
+<fieldset class="fieldset">
     @if ($label)
-        <x-ui.label :for="$id">{{ $label }}</x-ui.label>
+        <legend class="fieldset-legend">{{ $label }}</legend>
     @endif
 
     <select id="{{ $id }}" name="{{ $name }}"
@@ -31,5 +32,9 @@
         @endforeach
     </select>
 
+    @if ($hint && ! $errors->has($errorKey))
+        <p class="label">{{ $hint }}</p>
+    @endif
+
     <x-input-error :messages="$errors->get($errorKey)" />
-</div>
+</fieldset>
