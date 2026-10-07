@@ -13,16 +13,25 @@
             <x-ui.badge :variant="$idea->status->badgeVariant()">{{ $idea->status->label() }}</x-ui.badge>
         </div>
 
-        <div class="flex gap-2">
+        <div class="flex gap-2" x-data>
             <x-ui.button size="sm" :href="route('ideas.edit', $idea)">Edit</x-ui.button>
-            <form action="{{ route('ideas.destroy', $idea) }}" method="POST"
-                onsubmit="return confirm('Delete this idea?');">
-                @csrf
-                @method('DELETE')
-                <x-ui.button variant="error" size="sm">Delete</x-ui.button>
-            </form>
+            <x-ui.button type="button" variant="error" size="sm"
+                x-on:click="$dispatch('open-modal', 'delete-idea')">Delete</x-ui.button>
         </div>
     </div>
+
+    <x-ui.modal name="delete-idea" title="Delete this idea?">
+        <p>"{{ $idea->title ?: 'Untitled idea' }}" and its steps will be permanently deleted.</p>
+
+        <x-slot:actions>
+            <x-ui.button type="button" x-on:click="open = false">Cancel</x-ui.button>
+            <form action="{{ route('ideas.destroy', $idea) }}" method="POST">
+                @csrf
+                @method('DELETE')
+                <x-ui.button variant="error">Delete</x-ui.button>
+            </form>
+        </x-slot:actions>
+    </x-ui.modal>
 
     <x-card>
         @if ($idea->image_path)

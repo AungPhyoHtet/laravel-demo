@@ -35,7 +35,8 @@ class StoreIdeaRequest extends FormRequest
             'links.*' => ['string', 'url:http,https', 'max:255'],
             'image' => ['nullable', File::image()->max(2 * 1024)],
             'steps' => ['array', 'max:20'],
-            'steps.*' => ['array:description'],
+            'steps.*' => ['array:id,description'],
+            'steps.*.id' => ['prohibited'],
             'steps.*.description' => ['required', 'string', 'max:255'],
         ];
     }

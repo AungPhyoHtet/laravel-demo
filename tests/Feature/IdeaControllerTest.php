@@ -199,7 +199,7 @@ describe('store details', function (): void {
         $this->actingAs($this->user)->post(route('ideas.store'), ideaPayload([
             'status' => IdeaStatus::InProgress->value,
             'links' => ['https://example.com', ''],
-            'steps' => [['description' => 'Sketch it'], ['description' => ''], ['description' => 'Build it']],
+            'steps' => [['id' => '', 'description' => 'Sketch it'], ['id' => '', 'description' => ''], ['id' => '', 'description' => 'Build it']],
             'image' => UploadedFile::fake()->image('mousetrap.jpg'),
         ]))->assertRedirect(route('ideas.index'));
 
@@ -222,6 +222,7 @@ describe('store details', function (): void {
         'unknown status' => [['status' => 'archived'], 'status'],
         'invalid link' => [['links' => ['not-a-url']], 'links.0'],
         'non-http link' => [['links' => ['javascript:alert(1)']], 'links.0'],
+        'step with an id' => [['steps' => [['id' => 1, 'description' => 'Sketch it']]], 'steps.0.id'],
         'too long step' => [['steps' => [['description' => str_repeat('a', 256)]]], 'steps.0.description'],
         'non-image file' => [['image' => UploadedFile::fake()->create('notes.pdf', 10, 'application/pdf')], 'image'],
         'image over 2 MB' => [['image' => UploadedFile::fake()->image('big.jpg')->size(2049)], 'image'],

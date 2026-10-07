@@ -106,3 +106,19 @@ it('renders a radio group as a fieldset with a legend and a hint', function (): 
         ->assertSee('<legend class="fieldset-legend">Status</legend>', false)
         ->assertSee('<p class="label">Pick one.</p>', false);
 });
+
+it('renders a modal labelled by its title with an actions footer', function (): void {
+    $this->blade('<x-ui.modal name="delete-idea" title="Delete this idea?">Body<x-slot:actions>Confirm</x-slot:actions></x-ui.modal>')
+        ->assertSee('aria-labelledby="delete-idea-modal-title"', false)
+        ->assertSee('<h3 id="delete-idea-modal-title" class="text-lg font-bold">Delete this idea?</h3>', false)
+        ->assertSeeInOrder(['Body', 'modal-action', 'Confirm'], false);
+});
+
+it('renders a modal closed by default and open when shown', function (): void {
+    $this->blade('<x-ui.modal name="info">Body</x-ui.modal>')
+        ->assertSee('x-data="{ open: false }"', false)
+        ->assertDontSee('aria-labelledby', false);
+
+    $this->blade('<x-ui.modal name="info" :show="true">Body</x-ui.modal>')
+        ->assertSee('x-data="{ open: true }"', false);
+});
