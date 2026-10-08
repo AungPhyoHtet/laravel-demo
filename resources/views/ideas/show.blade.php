@@ -80,9 +80,19 @@
                 <progress class="progress progress-primary" value="{{ $completedStepCount }}"
                     max="{{ $idea->steps->count() }}"
                     aria-label="{{ $completedStepCount }} of {{ $idea->steps->count() }} steps done"></progress>
-                <ul class="list-disc ps-5">
+                <ul class="flex flex-col gap-1">
                     @foreach ($idea->steps as $step)
-                        <li @class(['line-through opacity-70' => $step->is_completed])>{{ $step->description }}</li>
+                        <li>
+                            <form action="{{ route('steps.update', $step) }}" method="POST" x-data>
+                                @csrf
+                                @method('PATCH')
+                                <input type="hidden" name="is_completed" value="0">
+                                <x-ui.checkbox name="is_completed" :id="'step-'.$step->id" :checked="$step->is_completed"
+                                    variant="primary" size="sm" x-on:change="$el.form.requestSubmit()">
+                                    <span @class(['line-through opacity-70' => $step->is_completed])>{{ $step->description }}</span>
+                                </x-ui.checkbox>
+                            </form>
+                        </li>
                     @endforeach
                 </ul>
             @else

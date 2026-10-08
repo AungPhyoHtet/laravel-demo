@@ -7,6 +7,7 @@ use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\IdeaController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\StepController;
 use Illuminate\Support\Facades\Route;
 
 Route::view('/', 'welcome')->name('home');
@@ -21,6 +22,7 @@ Route::middleware('guest')->group(function (): void {
 
 Route::middleware('auth')->group(function (): void {
     Route::resource('ideas', IdeaController::class);
+    Route::patch('steps/{step}', [StepController::class, 'update'])->name('steps.update');
 
     Route::get('notifications', [NotificationController::class, 'index'])->name('notifications.index');
     Route::post('notifications/read', [NotificationController::class, 'markAllAsRead'])->name('notifications.read-all');
