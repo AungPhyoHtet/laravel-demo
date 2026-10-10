@@ -1,12 +1,17 @@
 <?php
 
 use App\Models\User;
+use App\Notifications\ProfileUpdated;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Notifications\AnonymousNotifiable;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Notification;
 
 uses(RefreshDatabase::class);
 
 beforeEach(function (): void {
+    Notification::fake();
+
     $this->user = User::factory()->create([
         'name' => 'Ada Lovelace',
         'email' => 'ada@example.com',
@@ -47,6 +52,12 @@ describe('update', function (): void {
             ->and($user->email)->toBe('grace@example.com')
             ->and($user->email_verified_at)->toBeNull()
             ->and(Hash::check('password', $user->password))->toBeTrue();
+
+        Notification::assertSentTo($user, ProfileUpdated::class, fn (ProfileUpdated $notification): bool => $notification->changedFields === ['name', 'email']);
+        Notification::assertSentOnDemand(
+            ProfileUpdated::class,
+            fn (ProfileUpdated $notification, array $channels, AnonymousNotifiable $notifiable): bool => $notifiable->routes['mail'] === 'ada@example.com',
+        );
     });
 
     it('keeps the email verification when the email is unchanged', function (): void {
@@ -57,6 +68,18 @@ describe('update', function (): void {
 
         $response->assertSessionHasNoErrors();
         expect($this->user->fresh()->email_verified_at)->not->toBeNull();
+        Notification::assertSentTo($this->user, ProfileUpdated::class, fn (ProfileUpdated $notification): bool => $notification->changedFields === ['name']);
+        Notification::assertSentOnDemandTimes(ProfileUpdated::class, 0);
+    });
+
+    it('sends no notification when nothing changed', function (): void {
+        $response = $this->actingAs($this->user)->patch(route('profile.update'), [
+            'name' => 'Ada Lovelace',
+            'email' => 'ada@example.com',
+        ]);
+
+        $response->assertRedirect(route('profile.edit'));
+        Notification::assertNothingSent();
     });
 
     it('changes the password when the current password is correct', function (): void {
@@ -70,6 +93,7 @@ describe('update', function (): void {
 
         $response->assertSessionHasNoErrors();
         expect(Hash::check('new-password123', $this->user->fresh()->password))->toBeTrue();
+        Notification::assertSentTo($this->user, ProfileUpdated::class, fn (ProfileUpdated $notification): bool => $notification->changedFields === ['password']);
     });
 
     it('rejects a password change without the correct current password', function (array $currentPassword, string $message): void {
@@ -111,6 +135,7 @@ describe('update', function (): void {
 
         $response->assertSessionHasErrors(['email' => 'The email has already been taken.']);
         expect($this->user->fresh()->email)->toBe('ada@example.com');
+        Notification::assertNothingSent();
     });
 
     it('requires a name and email', function (): void {
