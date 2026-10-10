@@ -47,6 +47,7 @@
                         @endif
                     </div>
                 </a>
+                <a href="{{ route('profile.edit') }}" @class(['btn btn-ghost', 'text-primary' => request()->routeIs('profile.*')])>Profile</a>
                 <form action="{{ route('logout') }}" method="POST">
                     @csrf
                     <x-ui.button>Log Out</x-ui.button>
