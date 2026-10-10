@@ -49,7 +49,7 @@ class IdeaPublished extends Notification implements ShouldQueue
     {
         return [
             'idea_id' => $this->idea->id,
-            'description' => $this->idea->description,
+            'description' => $this->idea->description_text,
             'url' => route('ideas.show', $this->idea),
         ];
     }

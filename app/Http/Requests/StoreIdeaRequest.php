@@ -62,7 +62,7 @@ class StoreIdeaRequest extends FormRequest
         $this->merge([
             'links' => array_values(array_filter(
                 (array) $this->input('links', []),
-                fn (mixed $link): bool => filled($link),
+                filled(...),
             )),
             'steps' => array_values(array_filter(
                 (array) $this->input('steps', []),

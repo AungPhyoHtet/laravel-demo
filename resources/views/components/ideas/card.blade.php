@@ -26,7 +26,7 @@
 
         <p class="text-sm opacity-70">Created {{ $idea->created_at->diffForHumans() }}</p>
 
-        <p class="whitespace-pre-line">{{ $idea->description }}</p>
+        <p class="whitespace-pre-line">{{ $idea->description_text }}</p>
 
         @if ($idea->links)
             <div>

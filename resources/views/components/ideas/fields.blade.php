@@ -11,7 +11,7 @@
 
 <x-ui.input name="title" label="Title" :value="$idea?->title" />
 
-<x-ui.textarea name="description" label="Description" rows="4" :value="$idea?->description" />
+<x-ui.textarea name="description" label="Description" rows="4" :value="$idea?->description" hint="Supports Markdown: **bold**, _italic_, # headings, - lists and [links](https://example.com)." />
 
 <x-ui.select name="status" label="Status" :options="\App\Enums\IdeaStatus::options()"
     :value="$idea?->status ?? \App\Enums\IdeaStatus::Pending" />

@@ -5,10 +5,12 @@ namespace App\Models;
 use App\Enums\IdeaStatus;
 use Database\Factories\IdeaFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Str;
 
 #[Fillable([
     'title',
@@ -42,6 +44,33 @@ class Idea extends Model
             'links' => 'array',
             'status' => IdeaStatus::class,
         ];
+    }
+
+    /**
+     * Get the description rendered from Markdown to HTML, with raw HTML escaped and unsafe links removed.
+     *
+     * @return Attribute<string, never>
+     */
+    protected function descriptionHtml(): Attribute
+    {
+        return Attribute::make(
+            get: fn (): string => Str::markdown($this->description ?? '', [
+                'html_input' => 'escape',
+                'allow_unsafe_links' => false,
+            ]),
+        );
+    }
+
+    /**
+     * Get the description as plain text with the Markdown formatting removed, for previews.
+     *
+     * @return Attribute<string, never>
+     */
+    protected function descriptionText(): Attribute
+    {
+        return Attribute::make(
+            get: fn (): string => trim(html_entity_decode(strip_tags($this->description_html), ENT_QUOTES | ENT_HTML5)),
+        );
     }
 
     /**

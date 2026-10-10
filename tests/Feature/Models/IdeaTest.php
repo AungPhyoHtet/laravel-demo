@@ -51,3 +51,35 @@ it('deletes its steps when the idea is deleted', function (): void {
 
     $this->assertModelMissing($step);
 });
+
+it('renders the description from Markdown to HTML', function (): void {
+    $idea = new Idea(['description' => "## Goal\n\nBuild a **better** mousetrap\n\n- cheap\n- humane"]);
+
+    $html = $idea->description_html;
+
+    expect($html)
+        ->toContain('<h2>Goal</h2>')
+        ->toContain('<strong>better</strong>')
+        ->toContain('<li>cheap</li>');
+});
+
+it('escapes raw HTML and drops unsafe links in the rendered description', function (): void {
+    $idea = new Idea(['description' => "Hi <script>alert('xss')</script>\n\n[bad](javascript:alert(1)) [good](https://laravel.com)"]);
+
+    $html = $idea->description_html;
+
+    expect($html)
+        ->toContain('Hi &lt;script&gt;')
+        ->not->toContain('<script>')
+        ->toContain('<a>bad</a>')
+        ->not->toContain('javascript:')
+        ->toContain('<a href="https://laravel.com">good</a>');
+});
+
+it('strips the Markdown formatting from the plain-text description', function (): void {
+    $idea = new Idea(['description' => "## Goal\n\nBuild a **better** mousetrap & \"more\""]);
+
+    $text = $idea->description_text;
+
+    expect($text)->toBe("Goal\nBuild a better mousetrap & \"more\"");
+});

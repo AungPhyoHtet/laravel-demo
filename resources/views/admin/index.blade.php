@@ -10,7 +10,7 @@
         <div class="flex flex-col gap-3">
             @foreach ($ideas as $idea)
                 <x-card>
-                    <p>{{ $idea->description }}</p>
+                    <p>{{ $idea->description_text }}</p>
                     <p class="text-sm opacity-70">by {{ $idea->user->name }}</p>
                 </x-card>
             @endforeach

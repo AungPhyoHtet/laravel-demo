@@ -50,7 +50,7 @@
 
         <section>
             <h2 class="font-semibold mb-1">Description</h2>
-            <p class="whitespace-pre-line">{{ $idea->description }}</p>
+            <div class="prose max-w-none">{!! $idea->description_html !!}</div>
         </section>
 
         <section>

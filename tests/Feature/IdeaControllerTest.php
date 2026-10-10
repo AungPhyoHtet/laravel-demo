@@ -239,6 +239,15 @@ describe('store details', function (): void {
 });
 
 describe('show', function (): void {
+    it('renders the description as formatted Markdown', function (): void {
+        $idea = Idea::factory()->for($this->user)->create(['description' => "## Goal\n\nBuild a **better** mousetrap"]);
+
+        $response = $this->actingAs($this->user)->get(route('ideas.show', $idea));
+
+        $response->assertSee('<div class="prose max-w-none"><h2>Goal</h2>', false);
+        $response->assertSee('<strong>better</strong>', false);
+    });
+
     it('displays the idea', function (): void {
         $idea = Idea::factory()->for($this->user)->create(['description' => 'Build a better mousetrap']);
 
